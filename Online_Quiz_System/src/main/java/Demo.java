@@ -4,6 +4,7 @@ public class Demo {
 	{
 		System.out.print("hellow");
 		System.out.print("hellow");
+		System.out.println("Hii");
 	}
 
 }
