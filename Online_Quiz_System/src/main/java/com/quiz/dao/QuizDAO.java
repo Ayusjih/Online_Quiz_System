@@ -78,4 +78,66 @@ public class QuizDAO {
     }
 	
     // --- We will add getQuizById() later ---
+	/**
+     * Adds a new quiz to the database.
+     * @param quiz The Quiz object containing the title and duration.
+     */
+    public void addQuiz(Quiz quiz) {
+        String sql = "INSERT INTO quizzes (title, duration_minutes) VALUES (?, ?)";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, quiz.getTitle());
+            ps.setInt(2, quiz.getDurationMinutes());
+
+            ps.executeUpdate(); // Use executeUpdate() for INSERT
+
+        } catch (SQLException e) {
+            System.out.println("Error in QuizDAO.addQuiz: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Deletes a quiz (and all its questions) from the database.
+     * @param quizId The ID of the quiz to delete.
+     */
+    public void deleteQuiz(int quizId) {
+        // We must delete questions first due to the FOREIGN KEY constraint
+        String deleteQuestionsSql = "DELETE FROM questions WHERE quiz_id = ?";
+        String deleteQuizSql = "DELETE FROM quizzes WHERE quiz_id = ?";
+
+        try (Connection conn = DBConnection.getConnection()) {
+            
+            // Turn off auto-commit to run this as a "transaction"
+            conn.setAutoCommit(false); 
+
+            // 1. Delete associated questions
+            try (PreparedStatement psQuestions = conn.prepareStatement(deleteQuestionsSql)) {
+                psQuestions.setInt(1, quizId);
+                psQuestions.executeUpdate();
+            }
+            
+            // 2. Delete the quiz itself
+            try (PreparedStatement psQuiz = conn.prepareStatement(deleteQuizSql)) {
+                psQuiz.setInt(1, quizId);
+                int rowsAffected = psQuiz.executeUpdate();
+                
+                if (rowsAffected == 0) {
+                	throw new SQLException("Deleting quiz failed, no rows affected.");
+                }
+            }
+
+            // If both deletes succeed, commit the changes
+            conn.commit(); 
+
+        } catch (SQLException e) {
+            System.out.println("Error in QuizDAO.deleteQuiz: " + e.getMessage());
+            e.printStackTrace();
+            // We don't have a conn.rollback() here because try-with-resources
+            // will close the connection, and any uncommitted changes are
+            // automatically rolled back.
+        }
+    }
 }

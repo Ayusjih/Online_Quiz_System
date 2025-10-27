@@ -1,5 +1,5 @@
 package com.quiz.servlet;
-
+import com.quiz.util.QuizSessionManager;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -36,36 +36,40 @@ public class StartQuizServlet extends HttpServlet {
         User user = (User) session.getAttribute("loggedInUser");
 
         // --- Security Check ---
-        // If user is not logged in, kick them to login page.
         if (user == null) {
             response.sendRedirect("login.jsp");
             return;
         }
 
         try {
-            // 1. Get the quizId from the URL (the ?quizId=... part)
+            // 1. Get the quizId from the URL
             int quizId = Integer.parseInt(request.getParameter("quizId"));
 
-            // 2. Fetch the quiz and its questions from the DAOs
+            // 2. Fetch the quiz and its questions
             Quiz quiz = quizDAO.getQuizById(quizId);
             List<Question> questions = questionDAO.getQuestionsForQuiz(quizId);
             
-            // --- Good Practice: Shuffle the questions! ---
             Collections.shuffle(questions);
 
             // 3. Set up the quiz in the user's session
             session.setAttribute("currentQuiz", quiz);
             session.setAttribute("quizQuestions", questions);
-            session.setAttribute("questionIndex", 0); // Start at the first question
-            session.setAttribute("userAnswers", new int[questions.size()]); // Array to hold answers
-            session.setAttribute("startTime", System.currentTimeMillis()); // *This is for our timer!*
+            session.setAttribute("questionIndex", 0); 
+            session.setAttribute("userAnswers", new int[questions.size()]);
+            session.setAttribute("startTime", System.currentTimeMillis()); 
 
-            // 4. Redirect to the quiz page
-            response.sendRedirect("quiz.jsp"); // We will create this file next
+            // 4. --- THIS IS THE FIX ---
+            // Add to the monitor *before* you redirect
+            QuizSessionManager.add(session);
+            
+            // 5. Redirect ONCE to the quiz page
+            response.sendRedirect("quiz.jsp");
 
         } catch (NumberFormatException e) {
             // Handle cases where quizId is not a number
             response.sendRedirect("dashboard.jsp");
         }
+        
+        // --- DO NOT PUT ANY CODE HERE ---
     }
 }

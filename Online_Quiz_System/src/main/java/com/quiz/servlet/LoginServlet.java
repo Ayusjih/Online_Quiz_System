@@ -42,19 +42,19 @@ public class LoginServlet extends HttpServlet {
         // 3. Check if the login was successful
         if (user != null) {
             // --- SUCCESS ---
-            
-            // 3a. Create a new session (or get the existing one)
             HttpSession session = request.getSession();
-            
-            // 3b. Store the User object in the session
-            // This is why we needed Serializable!
             session.setAttribute("loggedInUser", user);
-            
-            // 3c. Redirect to a new "dashboard" page
-            response.sendRedirect("dashboard.jsp"); // We'll create this next
 
-        } else {
-            // --- FAILURE ---
+            // --- NEW: Admin vs. Student Check ---
+            if (user.isAdmin()) {
+                // It's an admin! Send to admin dashboard.
+                response.sendRedirect("admin_dashboard.jsp");
+            } else {
+                // It's a regular student. Send to student dashboard.
+                response.sendRedirect("dashboard.jsp");
+            }
+
+        } else {   // --- FAILURE ---
             
             // 3d. Set an error message
             request.setAttribute("errorMessage", "Invalid username or password. Please try again.");
