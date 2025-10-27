@@ -102,10 +102,23 @@
         padding: 40px;
         color: #555;
     }
-</style>
+    	
+    	    .details-btn {
+            background-color: #17a2b8;
+            color: white;
+            padding: 5px 12px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .details-btn:hover {
+            background-color: #117a8b;
+        }
+    </style>
 </head>
 <body>
-
+    
     <h1 class="header">All Student Results</h1>
     <a href="admin_dashboard.jsp" class="back-link">&larr; Back to Admin Dashboard</a>
 
