@@ -52,4 +52,66 @@ public class QuestionDAO {
         
         return questionList;
     }
+    
+    
+    /**
+     * Adds a new question to a specific quiz.
+     * @param question The Question object to add.
+     */
+    public void addQuestion(Question question) {
+        String sql = "INSERT INTO questions (quiz_id, question_text, option1, option2, option3, option4, correct_answer) " +
+                     "VALUES (?, ?, ?, ?, ?, ?, ?)";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setInt(1, question.getQuizId());
+            ps.setString(2, question.getQuestionText());
+            ps.setString(3, question.getOption1());
+            ps.setString(4, question.getOption2());
+            ps.setString(5, question.getOption3());
+            ps.setString(6, question.getOption4());
+            ps.setInt(7, question.getCorrectAnswer());
+            
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            System.out.println("Error in QuestionDAO.addQuestion: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Deletes a single question by its ID.
+     * @param questionId The ID of the question to delete.
+     */
+    public void deleteQuestion(int questionId) {
+        // We also need to delete any answers referencing this question
+        String deleteAnswersSql = "DELETE FROM result_answers WHERE question_id = ?";
+        String deleteQuestionSql = "DELETE FROM questions WHERE question_id = ?";
+
+        try (Connection conn = DBConnection.getConnection()) {
+            
+            conn.setAutoCommit(false); // Start transaction
+
+            // 1. Delete associated answers
+            try (PreparedStatement psAnswers = conn.prepareStatement(deleteAnswersSql)) {
+                psAnswers.setInt(1, questionId);
+                psAnswers.executeUpdate();
+            }
+            
+            // 2. Delete the question itself
+            try (PreparedStatement psQuestion = conn.prepareStatement(deleteQuestionSql)) {
+                psQuestion.setInt(1, questionId);
+                psQuestion.executeUpdate();
+            }
+
+            conn.commit(); // Commit both deletes
+
+        } catch (SQLException e) {
+            System.out.println("Error in QuestionDAO.deleteQuestion transaction: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
 }
