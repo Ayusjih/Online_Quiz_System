@@ -548,7 +548,7 @@
         closeSidebarBtn.addEventListener('click', closeSidebar);
         pageOverlay.addEventListener('click', closeSidebar);
 
-        // --- Logout Modal Logic ---
+    
         const logoutBtn = document.getElementById('logoutBtn');
         const logoutModal = document.getElementById('logoutModal');
         const cancelLogoutBtn = document.getElementById('cancelLogoutBtn');
