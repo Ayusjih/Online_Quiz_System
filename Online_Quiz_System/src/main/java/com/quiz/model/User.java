@@ -1,6 +1,7 @@
 package com.quiz.model;
 
 import java.io.Serializable;
+import java.sql.Timestamp; // Make sure this is imported
 
 // We implement Serializable, which is good practice for
 // classes that might be stored in a web session (like a logged-in user)
@@ -8,20 +9,13 @@ public class User implements Serializable {
     
     private static final long serialVersionUID = 1L; // For Serializable
 
-    // Fields (must match your 'users' table columns)
+    // Fields (must match your 'users' table columns + new ones)
     private int userId;
     private String username;
     private String password;
     private boolean isAdmin;
-    private String email;
-    
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
+    private String email;         // Added for personalization
+    private Timestamp createdAt;  // Added for personalization
 
     // Default constructor
     public User() {
@@ -61,4 +55,22 @@ public class User implements Serializable {
     public void setAdmin(boolean isAdmin) {
         this.isAdmin = isAdmin;
     }
+
+    // --- NEW Getters and Setters for Personalization ---
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public Timestamp getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(Timestamp createdAt) {
+        this.createdAt = createdAt;
+    }
 }
+
