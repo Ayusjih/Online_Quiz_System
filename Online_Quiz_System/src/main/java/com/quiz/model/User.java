@@ -13,6 +13,15 @@ public class User implements Serializable {
     private String username;
     private String password;
     private boolean isAdmin;
+    private String email;
+    
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
 
     // Default constructor
     public User() {
