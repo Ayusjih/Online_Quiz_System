@@ -1,11 +1,9 @@
 package com.quiz.servlet;
 
 import java.io.IOException;
-
 import com.quiz.dao.QuestionDAO;
 import com.quiz.model.Question;
 import com.quiz.model.User;
-
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
@@ -13,117 +11,98 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
-/**
- * Servlet to handle admin actions for managing questions (Add, Delete).
- */
 @WebServlet("/adminQuestion")
 public class AdminQuestionServlet extends HttpServlet {
     private static final long serialVersionUID = 1L;
-
     private QuestionDAO questionDAO;
 
     public void init() {
         questionDAO = new QuestionDAO();
     }
 
-    /**
-     * Handles the "Add Question" form submission (POST request).
-     */
+    // (doPost) - Naya form handle karne ke liye updated
     protected void doPost(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         
-        // 1. Check if user is an admin
+        // Security check
         if (!isAdmin(request, response)) {
-            return; // Security check failed, redirect already handled
+            return;
         }
 
-        // This is the quizId we need to redirect back to
-        String quizId = request.getParameter("quizId");
+        // Common data for both question types
+        int quizId = Integer.parseInt(request.getParameter("quizId"));
+        String questionType = request.getParameter("questionType");
+        String questionText = request.getParameter("questionText");
+        String correctAnswer = request.getParameter("correctAnswer");
         
-        try {
-            // 2. Get all form data
-            String questionText = request.getParameter("questionText");
-            String option1 = request.getParameter("option1");
-            String option2 = request.getParameter("option2");
-            String option3 = request.getParameter("option3");
-            String option4 = request.getParameter("option4");
-            int correctAnswer = Integer.parseInt(request.getParameter("correctAnswer"));
-            int quizIdInt = Integer.parseInt(quizId);
+        Question newQuestion = new Question();
+        newQuestion.setQuizId(quizId);
+        newQuestion.setQuestionType(questionType);
+        newQuestion.setQuestionText(questionText);
+        newQuestion.setCorrectAnswer(correctAnswer.trim()); // Answer ko trim karna zaroori hai
 
-            // 3. Create a new Question object
-            Question newQuestion = new Question();
-            newQuestion.setQuizId(quizIdInt);
-            newQuestion.setQuestionText(questionText);
-            newQuestion.setOption1(option1);
-            newQuestion.setOption2(option2);
-            newQuestion.setOption3(option3);
-            newQuestion.setOption4(option4);
-            newQuestion.setCorrectAnswer(correctAnswer);
-
-            // 4. Save to database
-            questionDAO.addQuestion(newQuestion);
-
-        } catch (NumberFormatException e) {
-            System.out.println("Error parsing number in AdminQuestionServlet: " + e.getMessage());
-            e.printStackTrace();
+        // Agar MCQ hai, toh options ko combine karo
+        if ("MCQ".equals(questionType)) {
+            String opt1 = request.getParameter("option1");
+            String opt2 = request.getParameter("option2");
+            String opt3 = request.getParameter("option3");
+            String opt4 = request.getParameter("option4");
+            
+            // Hum options ko "|" (pipe) character se jod rahe hain
+            String options = String.join("|", opt1, opt2, opt3, opt4);
+            newQuestion.setOptions(options);
+            
+        } else {
+            // "FIB" ke liye koi options nahi
+            newQuestion.setOptions(null); 
         }
         
-        // 5. Redirect back to the same page to show the new question
+        // 4. Save to database
+        questionDAO.addQuestion(newQuestion);
+        
+        // 5. User ko usi quiz ke page par vaapas bhejo
         response.sendRedirect("manage_questions.jsp?quizId=" + quizId);
     }
 
-    /**
-     * Handles the "Delete Question" link click (GET request).
-     */
+    // (doGet) - Ismein koi change nahi hai
     protected void doGet(HttpServletRequest request, HttpServletResponse response) 
             throws ServletException, IOException {
         
-        // 1. Check if user is an admin
+        // Security check
         if (!isAdmin(request, response)) {
-            return; 
-        }
-
-        // This is the quizId we need to redirect back to
-        String quizId = request.getParameter("quizId");
-        
-        try {
-            // 2. Get the questionId to delete
-            int questionId = Integer.parseInt(request.getParameter("questionId"));
-            
-            // 3. Delete from database
-            questionDAO.deleteQuestion(questionId);
-            
-        } catch (NumberFormatException e) {
-            System.out.println("Error parsing number in AdminQuestionServlet: " + e.getMessage());
-            e.printStackTrace();
+            return;
         }
         
-        // 4. Redirect back to the same page to show the updated list
+        // Get parameters
+        int questionId = Integer.parseInt(request.getParameter("questionId"));
+        // quizId ko vaapas redirect URL mein daalna zaroori hai
+        int quizId = Integer.parseInt(request.getParameter("quizId")); 
+        
+        // Delete the question
+        questionDAO.deleteQuestion(questionId);
+        
+        // Redirect back to the same quiz management page
         response.sendRedirect("manage_questions.jsp?quizId=" + quizId);
     }
 
     /**
-     * A private helper method to check for admin status.
-     * This prevents code duplication and secures our servlet.
+     * Private helper method for security check
      */
-    private boolean isAdmin(HttpServletRequest request, HttpServletResponse response) 
-            throws IOException {
-        
-        HttpSession session = request.getSession(false); // false = don't create new session
-        
+    private boolean isAdmin(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        HttpSession session = request.getSession(false);
         if (session == null) {
             response.sendRedirect("login.jsp");
             return false;
         }
         
         User adminUser = (User) session.getAttribute("loggedInUser");
-        
         if (adminUser == null || !adminUser.isAdmin()) {
+            // Agar user logged in nahi hai, ya admin nahi hai, toh login par bhejo
             response.sendRedirect("login.jsp");
             return false;
         }
         
-        // If we get here, the user is a valid admin
+        // User admin hai
         return true;
     }
 }
