@@ -1,26 +1,25 @@
 package com.quiz.dao;
-import java.sql.Statement;
-import java.util.Map;
+
 import java.sql.Connection;
-import com.quiz.model.ResultDetails;
 import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.List;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.ArrayList;
-import com.quiz.model.Result;
-import com.quiz.util.DBConnection;
+import java.util.List;
+import java.util.Map;
 import com.quiz.model.AnswerDetail;
+import com.quiz.model.Result;
+import com.quiz.model.ResultDetails;
+import com.quiz.util.DBConnection;
 
 public class ResultDAO {
 
-    /**
-     * Saves a quiz result to the database.
-     * @param result The Result object to save.
-     */
-public void saveResult(Result result, Map<Integer, Integer> answers) {
+    // (saveResult) - Ab Map<Integer, String> accept karega
+    public void saveResult(Result result, Map<Integer, String> answers) {
         
         String sqlResult = "INSERT INTO results (user_id, quiz_id, score) VALUES (?, ?, ?)";
+        // 'user_answer' ab String (VARCHAR) hai
         String sqlAnswer = "INSERT INTO result_answers (result_id, question_id, user_answer) VALUES (?, ?, ?)";
         
         Connection conn = null;
@@ -29,17 +28,14 @@ public void saveResult(Result result, Map<Integer, Integer> answers) {
 
         try {
             conn = DBConnection.getConnection();
-            // --- Start Transaction ---
             conn.setAutoCommit(false); 
             
-            // 1. Save the main result and get the new result_id
             psResult = conn.prepareStatement(sqlResult, Statement.RETURN_GENERATED_KEYS);
             psResult.setInt(1, result.getUserId());
             psResult.setInt(2, result.getQuizId());
             psResult.setInt(3, result.getScore());
             psResult.executeUpdate();
             
-            // Get the newly generated result_id
             int newResultId = -1;
             try (ResultSet rs = psResult.getGeneratedKeys()) {
                 if (rs.next()) {
@@ -49,123 +45,90 @@ public void saveResult(Result result, Map<Integer, Integer> answers) {
                 }
             }
             
-            // 2. Save all the individual answers
             psAnswer = conn.prepareStatement(sqlAnswer);
             
-            // Loop through the map of answers
-            for (Map.Entry<Integer, Integer> entry : answers.entrySet()) {
+            for (Map.Entry<Integer, String> entry : answers.entrySet()) {
                 psAnswer.setInt(1, newResultId);
-                psAnswer.setInt(2, entry.getKey());   // questionId
-                psAnswer.setInt(3, entry.getValue()); // userAnswer
-                psAnswer.addBatch(); // Add to a batch for efficient saving
+                psAnswer.setInt(2, entry.getKey());
+                psAnswer.setString(3, entry.getValue()); // <-- INT se String ho gaya
+                psAnswer.addBatch();
             }
-            psAnswer.executeBatch(); // Execute all inserts at once
+            psAnswer.executeBatch(); 
 
-            // --- If everything is OK, commit the changes ---
             conn.commit(); 
             
         } catch (SQLException e) {
-            System.out.println("Error in ResultDAO.saveResult transaction: " + e.getMessage());
-            // --- If anything fails, roll back all changes ---
             if (conn != null) {
-                try {
-                    conn.rollback();
-                } catch (SQLException ex) {
-                    ex.printStackTrace();
-                }
+                try { conn.rollback(); } catch (SQLException ex) { ex.printStackTrace(); }
             }
             e.printStackTrace();
         } finally {
-            // --- Clean up ---
             try {
                 if (psResult != null) psResult.close();
                 if (psAnswer != null) psAnswer.close();
                 if (conn != null) {
-                    conn.setAutoCommit(true); // Reset to default
+                    conn.setAutoCommit(true);
                     conn.close();
                 }
             } catch (SQLException e) {
                 e.printStackTrace();
             }
         }
-}    
-    
-    public List<ResultDetails> getAllResultDetails() {
-        List<ResultDetails> resultsList = new ArrayList<>();
-        
-        // This is our JOIN query.
-        String sql = "SELECT r.result_id, u.username,u.username, q.title, r.score, r.date_taken " +
-                     "FROM results r " +
-                     "JOIN users u ON r.user_id = u.user_id " +
-                     "JOIN quizzes q ON r.quiz_id = q.quiz_id";
-                     // We can add "ORDER BY r.date_taken DESC" to show newest first
-
-        try (Connection conn = DBConnection.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql);
-             ResultSet rs = ps.executeQuery()) {
-
-            while (rs.next()) {
-                ResultDetails details = new ResultDetails();
-                details.setUsername(rs.getString("username"));
-                details.setQuizTitle(rs.getString("title"));
-                details.setScore(rs.getInt("score"));
-                details.setDateTaken(rs.getTimestamp("date_taken"));
-                details.setResultId(rs.getInt("result_id"));
-                
-                resultsList.add(details);
-            }
-
-        } catch (SQLException e) {
-            System.out.println("Error in ResultDAO.getAllResultDetails: " + e.getMessage());
-            e.printStackTrace();
-        }
-        
-        return resultsList;
     }
-    /**
-     * Fetches a detailed list of answers for a single quiz result.
-     * @param resultId The ID of the result we want to inspect.
-     * @return A List of AnswerDetail objects.
-     */
+
+    // (getResultAnswers) - Naye columns fetch karne ke liye updated
     public List<AnswerDetail> getResultAnswers(int resultId) {
         List<AnswerDetail> answerList = new ArrayList<>();
-        
-        // This query JOINS the answers table with the questions table
-        String sql = "SELECT q.question_text, q.option1, q.option2, q.option3, q.option4, " +
-                     "q.correct_answer, ra.user_answer " +
+        String sql = "SELECT q.question_type, q.question_text, q.options, q.correct_answer, ra.user_answer " +
                      "FROM result_answers ra " +
                      "JOIN questions q ON ra.question_id = q.question_id " +
                      "WHERE ra.result_id = ?";
 
         try (Connection conn = DBConnection.getConnection();
              PreparedStatement ps = conn.prepareStatement(sql)) {
-
-            ps.setInt(1, resultId); // Set the result_id we are looking for
-            
+            ps.setInt(1, resultId);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
                     AnswerDetail detail = new AnswerDetail();
+                    detail.setQuestionType(rs.getString("question_type"));
                     detail.setQuestionText(rs.getString("question_text"));
-                    detail.setOption1(rs.getString("option1"));
-                    detail.setOption2(rs.getString("option2"));
-                    detail.setOption3(rs.getString("option3"));
-                    detail.setOption4(rs.getString("option4"));
-                    detail.setCorrectAnswer(rs.getInt("correct_answer"));
-                    detail.setUserAnswer(rs.getInt("user_answer"));
+                    detail.setOptions(rs.getString("options"));
+                    detail.setCorrectAnswer(rs.getString("correct_answer"));
+                    detail.setUserAnswer(rs.getString("user_answer")); // <-- INT se String
                     
                     answerList.add(detail);
                 }
             }
-
         } catch (SQLException e) {
-            System.out.println("Error in ResultDAO.getResultAnswers: " + e.getMessage());
             e.printStackTrace();
         }
-        
         return answerList;
     }
     
-    
-    
-    
+    // (getAllResultDetails) - Ismein koi change nahi hai
+    public List<ResultDetails> getAllResultDetails() {
+        List<ResultDetails> resultsList = new ArrayList<>();
+        String sql = "SELECT r.result_id, u.username, q.title, r.score, r.date_taken " +
+                     "FROM results r " +
+                     "JOIN users u ON r.user_id = u.user_id " +
+                     "JOIN quizzes q ON r.quiz_id = q.quiz_id " +
+                     "ORDER BY r.date_taken DESC";
+
+        try (Connection conn = DBConnection.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql);
+             ResultSet rs = ps.executeQuery()) {
+            while (rs.next()) {
+                ResultDetails details = new ResultDetails();
+                details.setResultId(rs.getInt("result_id"));
+                details.setUsername(rs.getString("username"));
+                details.setQuizTitle(rs.getString("title"));
+                details.setScore(rs.getInt("score"));
+                details.setDateTaken(rs.getTimestamp("date_taken"));
+                resultsList.add(details);
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return resultsList;
+    }
 }
