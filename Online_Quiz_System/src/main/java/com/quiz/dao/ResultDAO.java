@@ -1,17 +1,19 @@
 package com.quiz.dao;
 
+// --- YEH IMPORTS ZAROORI HAIN ---
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.sql.ResultSet; 
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.List; 
 import java.util.Map;
-import com.quiz.model.AnswerDetail;
+import com.quiz.model.AnswerDetail; 
 import com.quiz.model.Result;
 import com.quiz.model.ResultDetails;
 import com.quiz.util.DBConnection;
+// --- IMPORTS END ---
 
 public class ResultDAO {
 
@@ -76,7 +78,7 @@ public class ResultDAO {
         }
     }
 
-    // (getResultAnswers) - Naye columns fetch karne ke liye updated
+    
     public List<AnswerDetail> getResultAnswers(int resultId) {
         List<AnswerDetail> answerList = new ArrayList<>();
         String sql = "SELECT q.question_type, q.question_text, q.options, q.correct_answer, ra.user_answer " +
@@ -105,7 +107,7 @@ public class ResultDAO {
         return answerList;
     }
     
-    // (getAllResultDetails) - Ismein koi change nahi hai
+    
     public List<ResultDetails> getAllResultDetails() {
         List<ResultDetails> resultsList = new ArrayList<>();
         String sql = "SELECT r.result_id, u.username, q.title, r.score, r.date_taken " +
@@ -132,3 +134,4 @@ public class ResultDAO {
         return resultsList;
     }
 }
+
