@@ -43,7 +43,11 @@
     Saara common CSS (Header, Sidebar, Dark Mode) navbar.jsp se aa raha hai
 -->
 <style>
-    /* --- Sirf is page ke specific styles --- */
+    /* =====================================================================
+        Yahaan is page ke specific styles vaapas add kar diye hain
+        (This page's specific styles have been added back here)
+    =====================================================================
+    */
     .quiz-container { 
         max-width: 800px; 
         margin: 20px auto; 
@@ -110,7 +114,7 @@
         transition: background-color 0.2s, border-color 0.2s;
     }
     .options-list label:hover { 
-        background: #e9e9e9; 
+        background-color: #e9e9e9; 
     }
     .options-list input[type="radio"] {
         margin-right: 10px;
@@ -154,6 +158,7 @@
     <!-- 
     =====================================================================
         Reusable Navbar ko yahaan include kiya ja raha hai
+        (Yahaan par aapki 'navbar.jsp' file ka sahi code hona zaroori hai)
     =====================================================================
     -->
     <jsp:include page="navbar.jsp" />
@@ -273,4 +278,3 @@
 
 </body>
 </html>
-
